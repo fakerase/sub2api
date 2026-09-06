@@ -1446,6 +1446,12 @@ func (w GatewayOpenAIWSSchedulerScoreWeights) IsValid() bool {
 		!math.IsNaN(w.TotalWeightSum()) && !math.IsInf(w.TotalWeightSum(), 0)
 }
 
+// stickyEscapeErrorRateUnset is the viper SetDefault sentinel for
+// gateway.openai_scheduler.sticky_escape_error_rate. Zero is a valid
+// operator-chosen threshold (disable error-rate escape), so Load must not
+// treat an explicit 0 as "unset" and rewrite it to the 0.5 default.
+const stickyEscapeErrorRateUnset = -1.0
+
 // GatewayOpenAISchedulerConfig OpenAI 高级调度器配置。
 type GatewayOpenAISchedulerConfig struct {
 	// StickyEscapeEnabled: 是否允许 session_hash sticky 在账号健康度劣化时临时逃逸
@@ -1921,7 +1927,7 @@ func load(allowMissingJWTSecret bool) (*Config, error) {
 	if cfg.Gateway.OpenAIScheduler.StickyEscapeTTFTMs == 0 {
 		cfg.Gateway.OpenAIScheduler.StickyEscapeTTFTMs = 15000
 	}
-	if cfg.Gateway.OpenAIScheduler.StickyEscapeErrorRate == 0 {
+	if cfg.Gateway.OpenAIScheduler.StickyEscapeErrorRate == stickyEscapeErrorRateUnset {
 		cfg.Gateway.OpenAIScheduler.StickyEscapeErrorRate = 0.5
 	}
 	// Kept as a backstop: setEnvReachableDefaults now registers this key with its
@@ -2482,7 +2488,8 @@ func setDefaults() {
 	viper.SetDefault("usage_cleanup.task_timeout_seconds", 1800)
 
 	// Idempotency
-	viper.SetDefault("idempotency.observe_only", true)
+	// Observation mode must be explicitly enabled; default is enforce.
+	viper.SetDefault("idempotency.observe_only", false)
 	viper.SetDefault("idempotency.default_ttl_seconds", 86400)
 	viper.SetDefault("idempotency.system_operation_ttl_seconds", 3600)
 	viper.SetDefault("idempotency.processing_timeout_seconds", 30)
@@ -2730,13 +2737,16 @@ func setEnvReachableDefaults() {
 	viper.SetDefault("gateway.user_message_queue.mode", "")
 	viper.SetDefault("update.proxy_url", "")
 
-	// sticky_escape_enabled is the one exception to the zero-value rule: its
+	// sticky_escape_enabled is an exception to the zero-value rule: its
 	// effective default is true, applied post-unmarshal via a viper.IsSet guard.
 	// Registering false would make IsSet always report true and permanently
 	// disable sticky escape, so register the effective default instead. An
 	// explicit false in config or env still wins.
 	viper.SetDefault("gateway.openai_scheduler.sticky_escape_enabled", true)
-	viper.SetDefault("gateway.openai_scheduler.sticky_escape_error_rate", 0.0)
+	// sticky_escape_error_rate cannot use 0 as the registered default: 0 is a
+	// valid explicit threshold. Use a sentinel so Load can apply 0.5 only when
+	// the key was truly unset.
+	viper.SetDefault("gateway.openai_scheduler.sticky_escape_error_rate", stickyEscapeErrorRateUnset)
 	viper.SetDefault("gateway.openai_scheduler.sticky_escape_ttft_ms", 0)
 
 	// server.trusted_proxies and security.forwarded_client_ip_headers are the

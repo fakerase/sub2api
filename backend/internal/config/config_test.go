@@ -685,8 +685,8 @@ func TestLoadDefaultIdempotencyConfig(t *testing.T) {
 		t.Fatalf("Load() error: %v", err)
 	}
 
-	if !cfg.Idempotency.ObserveOnly {
-		t.Fatalf("Idempotency.ObserveOnly = false, want true")
+	if cfg.Idempotency.ObserveOnly {
+		t.Fatalf("Idempotency.ObserveOnly = true, want false (observation mode must be explicit)")
 	}
 	if cfg.Idempotency.DefaultTTLSeconds != 86400 {
 		t.Fatalf("Idempotency.DefaultTTLSeconds = %d, want 86400", cfg.Idempotency.DefaultTTLSeconds)
@@ -694,6 +694,21 @@ func TestLoadDefaultIdempotencyConfig(t *testing.T) {
 	if cfg.Idempotency.SystemOperationTTLSeconds != 3600 {
 		t.Fatalf("Idempotency.SystemOperationTTLSeconds = %d, want 3600", cfg.Idempotency.SystemOperationTTLSeconds)
 	}
+}
+
+func TestLoadStickyEscapeErrorRateExplicitZero(t *testing.T) {
+	resetViperWithJWTSecret(t)
+	configDir := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(configDir, "config.yaml"), []byte(`
+gateway:
+  openai_scheduler:
+    sticky_escape_error_rate: 0
+`), 0o600))
+	t.Setenv("DATA_DIR", configDir)
+
+	cfg, err := Load()
+	require.NoError(t, err)
+	require.Equal(t, 0.0, cfg.Gateway.OpenAIScheduler.StickyEscapeErrorRate)
 }
 
 func TestLoadDefaultBatchImageQueueDisabled(t *testing.T) {
