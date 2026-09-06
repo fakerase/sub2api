@@ -37,6 +37,10 @@ func TestProvideHTTPServerAppliesIngressLimits(t *testing.T) {
 	require.Equal(t, 8*1024, srv.MaxHeaderBytes)
 	require.Equal(t, time.Second, srv.ReadHeaderTimeout)
 	require.Equal(t, 5*time.Second, srv.IdleTimeout)
+	// Streaming gateways require unbounded request/response bodies at the
+	// server layer; panel /api/v1 timeouts are middleware-scoped instead.
+	require.Zero(t, srv.ReadTimeout)
+	require.Zero(t, srv.WriteTimeout)
 }
 
 func TestProvideHTTPServerEnablesBoundedH2C(t *testing.T) {

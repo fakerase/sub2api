@@ -10,6 +10,9 @@ terminate healthy long generations and streams.
   Go maps it to the corresponding HTTP/2 header-list limit.
 - `server.read_header_timeout: 10` bounds slow-header attacks. It does not
   limit request processing or response streaming.
+- `server.panel_api_timeout: 60` applies `context.WithTimeout` only to panel
+  `/api/v1` routes. Gateway streaming paths stay unbounded at the HTTP server
+  layer so long SSE/WebSocket responses are not cut off.
 - `server.max_request_body_size: 268435456` is the absolute 256 MiB safety net.
 - `gateway.max_body_size: 268435456` remains available to multimodal, Gemini,
   image, video, and batch-image endpoints.

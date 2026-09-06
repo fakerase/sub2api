@@ -36,6 +36,10 @@ server:
   # Keep-alive idle timeout in seconds.
   # Keep-Alive 空闲连接超时（秒）。
   idle_timeout: 120
+  # Panel /api/v1 request timeout in seconds (0 disables). Does not apply to gateway
+  # streaming paths (/v1, /v1beta, ...). http.Server still has no global Read/WriteTimeout.
+  # 面板 /api/v1 请求超时（秒，0 禁用）。不影响网关流式路径；服务端仍不设全局 Read/WriteTimeout。
+  panel_api_timeout: 60
   # Trusted proxies used when security.trust_forwarded_ip_for_api_key_acl is false.
   # List only the exact proxy addresses that connect directly to Sub2API.
   # Set [] explicitly to disable forwarded-IP trust in high-security mode.
